@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Patient, Doctor, or Hospital Administrator profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string", "maxLength": 30 },
+        "role": { "type": "string", "enum": ["patient", "doctor", "admin"] },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "address": { "type": "string", "maxLength": 200 },
+        "specialty": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role", "status"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Dental appointment booking record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientId": { "type": "string" },
+        "patientName": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "type": { "type": "string" },
+        "status": { "type": "string", "enum": ["Confirmed", "Pending", "Completed", "In Progress", "Cancelled"] },
+        "reason": { "type": "string", "maxLength": 500 },
+        "fee": { "type": "number" },
+        "meetLink": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "patientId", "doctorId", "date", "time", "status"]
+    },
+    "ClinicalNote": {
+      "title": "ClinicalNote",
+      "description": "Dental clinical note with extracted neural NLP entities",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientId": { "type": "string" },
+        "patientName": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "date": { "type": "string" },
+        "rawText": { "type": "string", "maxLength": 3000 },
+        "verifiedByDoctor": { "type": "boolean" }
+      },
+      "required": ["id", "patientId", "doctorId", "rawText", "verifiedByDoctor"]
+    },
+    "Prescription": {
+      "title": "Prescription",
+      "description": "Electronic prescription with medicines and multilingual instructions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientId": { "type": "string" },
+        "patientName": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "date": { "type": "string" },
+        "diagnosis": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Completed"] }
+      },
+      "required": ["id", "patientId", "doctorId", "diagnosis", "status"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Security and HIPAA-inspired clinical audit log entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "actorName": { "type": "string" },
+        "actorRole": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" }
+      },
+      "required": ["id", "timestamp", "actorName", "action"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles for patients, doctors, and admins"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": { "$ref": "#/entities/Appointment" },
+      "description": "Clinic appointments and Google Meet consultations"
+    },
+    "/clinical_notes/{noteId}": {
+      "schema": { "$ref": "#/entities/ClinicalNote" },
+      "description": "Clinical consultation notes and NLP extractions"
+    },
+    "/prescriptions/{prescriptionId}": {
+      "schema": { "$ref": "#/entities/Prescription" },
+      "description": "Electronic prescriptions"
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "System and clinical audit logs"
+    }
+  }
+}
