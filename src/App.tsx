@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Storage } from './utils/storage';
 import {
   Appointment,
@@ -8,8 +9,7 @@ import {
   AppNotification,
   Prescription,
   User,
-  UserRole,
-  XrayAnalysisResult
+  UserRole
 } from './types';
 
 // Common Components
@@ -49,8 +49,12 @@ import { SystemSettingsView } from './components/admin/SystemSettingsView';
 
 export default function App() {
   // App state
-  const [currentUser, setCurrentUser] = useState<User | null>(() => Storage.getCurrentUser());
-  const [authScreen, setAuthScreen] = useState<'login' | 'signup' | 'role-select' | 'forgot-password'>('login');
+  const [currentUser, setCurrentUser] = useState<User | null>(
+    () => Storage.getCurrentUser()
+  );
+  const [authScreen, setAuthScreen] = useState<
+    'login' | 'signup' | 'role-select' | 'forgot-password'
+  >('login');
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,21 +62,35 @@ export default function App() {
   // Domain entities
   const [users, setUsers] = useState<User[]>(() => Storage.getUsers());
   const [doctors, setDoctors] = useState<Doctor[]>(() => Storage.getDoctors());
-  const [appointments, setAppointments] = useState<Appointment[]>(() => Storage.getAppointments());
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(() => Storage.getPrescriptions());
-  const [records, setRecords] = useState<MedicalRecord[]>(() => Storage.getMedicalRecords());
-  const [followups, setFollowups] = useState<FollowUp[]>(() => Storage.getFollowups());
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => Storage.getNotifications());
+  const [appointments, setAppointments] = useState<Appointment[]>(
+    () => Storage.getAppointments()
+  );
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>(
+    () => Storage.getPrescriptions()
+  );
+  const [records, setRecords] = useState<MedicalRecord[]>(
+    () => Storage.getMedicalRecords()
+  );
+  const [followups, setFollowups] = useState<FollowUp[]>(
+    () => Storage.getFollowups()
+  );
+  const [notifications, setNotifications] = useState<AppNotification[]>(
+    () => Storage.getNotifications()
+  );
   const [auditLogs, setAuditLogs] = useState(() => Storage.getAuditLogs());
 
-  // Active Modals & Preselections
-  const [activeMeetingApt, setActiveMeetingApt] = useState<Appointment | null>(null);
-  const [activePrescriptionModal, setActivePrescriptionModal] = useState<Prescription | null>(null);
-  const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState<Doctor | null>(null);
-  const [preselectedPatientForDoctor, setPreselectedPatientForDoctor] = useState<string>('');
+  // Active modals and preselected values
+  const [activeMeetingApt, setActiveMeetingApt] =
+    useState<Appointment | null>(null);
+  const [activePrescriptionModal, setActivePrescriptionModal] =
+    useState<Prescription | null>(null);
+  const [selectedDoctorForBooking, setSelectedDoctorForBooking] =
+    useState<Doctor | null>(null);
+  const [preselectedPatientForDoctor, setPreselectedPatientForDoctor] =
+    useState('');
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
 
-  // Sync state helpers
+  // Refresh data from storage
   const refreshStorage = () => {
     setUsers(Storage.getUsers());
     setDoctors(Storage.getDoctors());
@@ -84,11 +102,12 @@ export default function App() {
     setAuditLogs(Storage.getAuditLogs());
   };
 
-  // Auth actions
+  // Authentication actions
   const handleLoginSuccess = (user: User) => {
     Storage.setCurrentUser(user);
     setCurrentUser(user);
     setCurrentTab('dashboard');
+    setIsMobileMenuOpen(false);
     refreshStorage();
   };
 
@@ -96,10 +115,12 @@ export default function App() {
     Storage.setCurrentUser(null);
     setCurrentUser(null);
     setAuthScreen('login');
+    setIsMobileMenuOpen(false);
   };
 
   const handleQuickRoleSwitch = (role: UserRole) => {
-    const candidate = users.find((u) => u.role === role);
+    const candidate = users.find((user) => user.role === role);
+
     if (candidate) {
       handleLoginSuccess(candidate);
     }
@@ -112,71 +133,91 @@ export default function App() {
     setCurrentTab('online-consultation');
   };
 
-  const handleUpdateAppointmentStatus = (id: string, status: Appointment['status']) => {
+  const handleUpdateAppointmentStatus = (
+    id: string,
+    status: Appointment['status']
+  ) => {
     if (!currentUser) return;
+
     Storage.updateAppointmentStatus(id, status, currentUser);
     refreshStorage();
   };
 
   const handleCancelAppointment = (id: string) => {
     if (!currentUser) return;
+
     Storage.updateAppointmentStatus(id, 'Cancelled', currentUser);
     refreshStorage();
   };
 
-  // Doctor Clinical Notes
-  const handleSaveClinicalNote = (note: Parameters<typeof Storage.addClinicalNote>[0]) => {
+  // Doctor clinical notes
+  const handleSaveClinicalNote = (
+    note: Parameters<typeof Storage.addClinicalNote>[0]
+  ) => {
     Storage.addClinicalNote(note);
     refreshStorage();
   };
 
-  // Doctor Prescriptions
-  const handleSavePrescription = (rx: Parameters<typeof Storage.addPrescription>[0]) => {
+  // Doctor prescriptions
+  const handleSavePrescription = (
+    rx: Parameters<typeof Storage.addPrescription>[0]
+  ) => {
     Storage.addPrescription(rx);
     refreshStorage();
   };
 
-  // Doctor X-ray
-  const handleSaveXrayReport = (report: Parameters<typeof Storage.addXrayReport>[0]) => {
+  // Doctor X-ray reports
+  const handleSaveXrayReport = (
+    report: Parameters<typeof Storage.addXrayReport>[0]
+  ) => {
     Storage.addXrayReport(report);
     refreshStorage();
   };
 
-  // Doctor Follow-ups
+  // Doctor follow-ups
   const handleAddFollowup = (fu: FollowUp) => {
     const list = Storage.getFollowups();
     list.unshift(fu);
+
     localStorage.setItem('oralcare_followups', JSON.stringify(list));
+
     Storage.addAuditLog({
       actorName: currentUser?.name || 'Doctor',
       actorRole: 'doctor',
       action: 'Follow-up scheduled',
       details: `Scheduled checkup for ${fu.patientName} on ${fu.scheduledDate} at ${fu.scheduledTime}.`
     });
+
     refreshStorage();
   };
 
-  const handleUpdateFollowupStatus = (id: string, status: FollowUp['status']) => {
+  const handleUpdateFollowupStatus = (
+    id: string,
+    status: FollowUp['status']
+  ) => {
     const list = Storage.getFollowups();
-    const idx = list.findIndex((f) => f.id === id);
-    if (idx !== -1) {
-      list[idx].status = status;
+    const index = list.findIndex((followup) => followup.id === id);
+
+    if (index !== -1) {
+      list[index].status = status;
       localStorage.setItem('oralcare_followups', JSON.stringify(list));
       refreshStorage();
     }
   };
 
-  // Profile update
+  // Profile updates
   const handleUpdateProfile = (updates: Partial<User>) => {
     if (!currentUser) return;
+
     const updated = Storage.updateUser(currentUser.id, updates);
     setCurrentUser(updated);
     refreshStorage();
   };
 
-  // Admin user status
+  // Admin user actions
   const handleToggleUserStatus = (userId: string) => {
     if (!currentUser) return;
+
     Storage.toggleUserStatus(userId, currentUser);
     refreshStorage();
   };
@@ -186,7 +227,7 @@ export default function App() {
     refreshStorage();
   };
 
-  // Unauthenticated Screen Router
+  // Unauthenticated screen router
   if (!currentUser) {
     if (authScreen === 'signup') {
       return (
@@ -196,22 +237,27 @@ export default function App() {
         />
       );
     }
+
     if (authScreen === 'role-select') {
       return (
         <RoleSelectView
           onSelectRole={(role) => {
-            const match = users.find((u) => u.role === role);
+            const match = users.find((user) => user.role === role);
             if (match) handleLoginSuccess(match);
           }}
           onBackToLogin={() => setAuthScreen('login')}
         />
       );
     }
+
     if (authScreen === 'forgot-password') {
       return (
-        <ForgotPasswordView onBackToLogin={() => setAuthScreen('login')} />
+        <ForgotPasswordView
+          onBackToLogin={() => setAuthScreen('login')}
+        />
       );
     }
+
     return (
       <LoginView
         availableUsers={users}
@@ -223,12 +269,13 @@ export default function App() {
     );
   }
 
-  // Active Doctor object if doctor
-  const currentDoctor = doctors.find((d) => d.id === currentUser.id) || doctors[0];
+  // Active doctor object
+  const currentDoctor =
+    doctors.find((doctor) => doctor.id === currentUser.id) || doctors[0];
 
-  // Render view depending on role & tab
+  // Render content based on role and selected tab
   const renderMainContent = () => {
-    // PATIENT ROLE
+    // PATIENT
     if (currentUser.role === 'patient') {
       switch (currentTab) {
         case 'dashboard':
@@ -246,16 +293,18 @@ export default function App() {
               onSelectRecord={() => setCurrentTab('medical-records')}
             />
           );
+
         case 'find-doctor':
           return (
             <FindDoctorView
               doctors={doctors}
-              onSelectDoctorToBook={(doc) => {
-                setSelectedDoctorForBooking(doc);
+              onSelectDoctorToBook={(doctor) => {
+                setSelectedDoctorForBooking(doctor);
                 setCurrentTab('book-appointment');
               }}
             />
           );
+
         case 'book-appointment':
           return (
             <BookAppointmentView
@@ -267,6 +316,7 @@ export default function App() {
               onCancel={() => setCurrentTab('dashboard')}
             />
           );
+
         case 'appointments':
         case 'medical-records':
         case 'prescriptions':
@@ -274,19 +324,25 @@ export default function App() {
           return (
             <MedicalRecordsView
               currentUser={currentUser}
-              records={records.filter((r) => r.patientId === currentUser.id)}
+              records={records.filter(
+                (record) => record.patientId === currentUser.id
+              )}
             />
           );
+
         case 'online-consultation':
           return (
             <OnlineConsultationView
               currentUser={currentUser}
-              appointment={appointments.find((a) => a.patientId === currentUser.id)}
+              appointment={appointments.find(
+                (appointment) => appointment.patientId === currentUser.id
+              )}
               onJoinMeeting={(apt) => setActiveMeetingApt(apt)}
               onReschedule={() => setCurrentTab('book-appointment')}
               onCancel={handleCancelAppointment}
             />
           );
+
         case 'profile':
           return (
             <PatientProfileView
@@ -294,6 +350,7 @@ export default function App() {
               onUpdateProfile={handleUpdateProfile}
             />
           );
+
         default:
           return (
             <PatientDashboardView
@@ -312,7 +369,7 @@ export default function App() {
       }
     }
 
-    // DOCTOR ROLE
+    // DOCTOR
     if (currentUser.role === 'doctor') {
       switch (currentTab) {
         case 'dashboard':
@@ -323,16 +380,17 @@ export default function App() {
               onNavigateTab={setCurrentTab}
               onUpdateStatus={handleUpdateAppointmentStatus}
               onJoinMeeting={(apt) => setActiveMeetingApt(apt)}
-              onOpenClinicalNote={(pName) => {
-                setPreselectedPatientForDoctor(pName);
+              onOpenClinicalNote={(patientName) => {
+                setPreselectedPatientForDoctor(patientName);
                 setCurrentTab('clinical-notes');
               }}
             />
           );
+
         case 'patient-directory':
           return (
             <PatientDirectoryView
-              patients={users.filter((u) => u.role === 'patient')}
+              patients={users.filter((user) => user.role === 'patient')}
               onAddPatient={handleAddUser}
               onOpenNotesForPatient={(name) => {
                 setPreselectedPatientForDoctor(name);
@@ -344,42 +402,47 @@ export default function App() {
               }}
             />
           );
+
         case 'clinical-notes':
           return (
             <ClinicalNotesNLPView
               currentDoctor={currentDoctor}
-              patients={users.filter((u) => u.role === 'patient')}
+              patients={users.filter((user) => user.role === 'patient')}
               preselectedPatientName={preselectedPatientForDoctor}
               onSaveNote={handleSaveClinicalNote}
             />
           );
+
         case 'prescriptions':
           return (
             <PrescriptionManagementView
               currentDoctor={currentDoctor}
-              patients={users.filter((u) => u.role === 'patient')}
+              patients={users.filter((user) => user.role === 'patient')}
               preselectedPatientName={preselectedPatientForDoctor}
               onSavePrescription={handleSavePrescription}
             />
           );
+
         case 'xray-analysis':
           return (
             <XrayAnalysisView
               currentDoctor={currentDoctor}
-              patients={users.filter((u) => u.role === 'patient')}
+              patients={users.filter((user) => user.role === 'patient')}
               onSaveReport={handleSaveXrayReport}
             />
           );
+
         case 'follow-ups':
           return (
             <FollowupManagementView
               currentDoctor={currentDoctor}
-              patients={users.filter((u) => u.role === 'patient')}
+              patients={users.filter((user) => user.role === 'patient')}
               followups={followups}
               onAddFollowup={handleAddFollowup}
               onUpdateStatus={handleUpdateFollowupStatus}
             />
           );
+
         case 'medical-records':
           return (
             <MedicalRecordsView
@@ -387,6 +450,7 @@ export default function App() {
               records={records}
             />
           );
+
         case 'profile':
           return (
             <PatientProfileView
@@ -394,6 +458,7 @@ export default function App() {
               onUpdateProfile={handleUpdateProfile}
             />
           );
+
         default:
           return (
             <DoctorDashboardView
@@ -402,8 +467,8 @@ export default function App() {
               onNavigateTab={setCurrentTab}
               onUpdateStatus={handleUpdateAppointmentStatus}
               onJoinMeeting={(apt) => setActiveMeetingApt(apt)}
-              onOpenClinicalNote={(pName) => {
-                setPreselectedPatientForDoctor(pName);
+              onOpenClinicalNote={(patientName) => {
+                setPreselectedPatientForDoctor(patientName);
                 setCurrentTab('clinical-notes');
               }}
             />
@@ -411,7 +476,7 @@ export default function App() {
       }
     }
 
-    // ADMINISTRATOR ROLE
+    // ADMIN
     if (currentUser.role === 'admin') {
       switch (currentTab) {
         case 'dashboard':
@@ -428,13 +493,22 @@ export default function App() {
               onNavigateTab={setCurrentTab}
             />
           );
+
         case 'audit-logs':
           return <AuditLogsView auditLogs={auditLogs} />;
+
         case 'system-settings':
           return <SystemSettingsView />;
+
         case 'medical-records':
         case 'prescriptions':
-          return <MedicalRecordsView currentUser={currentUser} records={records} />;
+          return (
+            <MedicalRecordsView
+              currentUser={currentUser}
+              records={records}
+            />
+          );
+
         case 'profile':
           return (
             <PatientProfileView
@@ -442,6 +516,7 @@ export default function App() {
               onUpdateProfile={handleUpdateProfile}
             />
           );
+
         default:
           return (
             <AdminDashboardView
@@ -461,20 +536,23 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col antialiased">
-      <div className="flex-1 flex">
-        {/* Dark Navy Sidebar */}
+    <div className="flex min-h-screen flex-col antialiased bg-[#F8FAFC]">
+      {/* Sidebar and main content layout */}
+      <div className="flex min-w-0 flex-1">
         <Sidebar
           currentRole={currentUser.role}
           currentTab={currentTab}
-          onSelectTab={setCurrentTab}
+          onSelectTab={(tab) => {
+            setCurrentTab(tab);
+            setIsMobileMenuOpen(false);
+          }}
           onLogout={handleLogout}
           isOpenMobile={isMobileMenuOpen}
           onCloseMobile={() => setIsMobileMenuOpen(false)}
         />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        {/* Main content: never expands underneath the desktop sidebar */}
+        <div className="flex min-w-0 flex-1 flex-col">
           <Navbar
             currentUser={currentUser}
             notifications={notifications}
@@ -486,25 +564,25 @@ export default function App() {
             onSearchChange={setSearchQuery}
           />
 
-          <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">
+          <main className="mx-auto w-full max-w-7xl min-w-0 flex-1 p-4 md:p-8">
             {renderMainContent()}
           </main>
         </div>
       </div>
 
-      {/* Global Bottom Banner matching reference sheet */}
+      {/* Global bottom banner */}
       <FooterBanner
         onNavigateTab={setCurrentTab}
-        currentUserRole={currentUser?.role}
+        currentUserRole={currentUser.role}
       />
 
-      {/* Multi-Turn Gemini Dental AI Chatbot (gemini-3.1-flash-lite, gemini-3.8-flash, gemini-4-argon) */}
+      {/* Dental AI chatbot */}
       <DentalAiChatbot
         currentUserRole={currentUser.role}
         currentUserName={currentUser.name}
       />
 
-      {/* Video Consultation Modal (Google Meet Simulation) */}
+      {/* Video consultation modal */}
       {activeMeetingApt && (
         <VideoConsultationModal
           appointment={activeMeetingApt}
@@ -513,7 +591,7 @@ export default function App() {
         />
       )}
 
-      {/* Printable Prescription Modal */}
+      {/* Printable prescription modal */}
       {activePrescriptionModal && (
         <PrescriptionModal
           prescription={activePrescriptionModal}
@@ -521,39 +599,53 @@ export default function App() {
         />
       )}
 
-      {/* Notifications Drawer Modal */}
+      {/* Notifications modal */}
       {showNotificationsModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">Your Notifications</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900">
+                Your Notifications
+              </h3>
+
               <button
+                type="button"
                 onClick={() => setShowNotificationsModal(false)}
-                className="text-xs text-slate-400 hover:text-slate-600 font-semibold"
+                className="text-xs font-semibold text-slate-400 hover:text-slate-600"
               >
                 Close
               </button>
             </div>
 
-            <div className="divide-y divide-slate-100 mt-3 max-h-80 overflow-y-auto">
-              {notifications.map((n) => (
-                <div key={n.id} className="py-3 text-xs">
+            <div className="mt-3 max-h-80 divide-y divide-slate-100 overflow-y-auto">
+              {notifications.map((notification) => (
+                <div key={notification.id} className="py-3 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800">{n.title}</span>
-                    <span className="text-[10px] text-slate-400">{n.timestamp}</span>
+                    <span className="font-bold text-slate-800">
+                      {notification.title}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {notification.timestamp}
+                    </span>
                   </div>
-                  <p className="text-slate-600 mt-1 leading-relaxed">{n.message}</p>
+
+                  <p className="mt-1 leading-relaxed text-slate-600">
+                    {notification.message}
+                  </p>
                 </div>
               ))}
             </div>
 
             <button
+              type="button"
               onClick={() => {
-                notifications.forEach((n) => Storage.markNotificationRead(n.id));
+                notifications.forEach((notification) =>
+                  Storage.markNotificationRead(notification.id)
+                );
                 refreshStorage();
                 setShowNotificationsModal(false);
               }}
-              className="w-full mt-4 py-2.5 rounded-xl bg-teal-600 text-white text-xs font-semibold"
+              className="mt-4 w-full rounded-xl bg-teal-600 py-2.5 text-xs font-semibold text-white"
             >
               Mark All as Read
             </button>
