@@ -1,3 +1,4 @@
+
 {
   "name": "oralcare-dentalnlp-x",
   "private": true,
@@ -27,11 +28,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
-<<<<<<< HEAD
     "esbuild": "^0.28.2",
-=======
-    "esbuild": "^0.25.0",
->>>>>>> d8f0c838aa30d04ef967a561693f29a4d0bd24be
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^5.7.2"
