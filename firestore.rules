@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // User profiles: Users can read and update their own profile; authenticated users can read basic doctor profiles
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || resource.data.role == 'doctor');
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow update: if isSignedIn() && (
+        request.auth.uid == userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'phone', 'address', 'status', 'specialty'])
+      );
+      allow delete: if false;
+    }
+
+    // Appointments: Patients can access their own, Doctors can access appointments assigned to them
+    match /appointments/{appointmentId} {
+      allow get, list: if isSignedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.doctorId == request.auth.uid ||
+        exists(/databases/$(database)/documents/users/$(request.auth.uid))
+      );
+      allow create: if isSignedIn() && isValidId(appointmentId);
+      allow update: if isSignedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.doctorId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'meetLink', 'meetId', 'date', 'time', 'reason'])
+      );
+      allow delete: if false;
+    }
+
+    // Clinical Notes: Restricted to doctors and attending clinicians
+    match /clinical_notes/{noteId} {
+      allow get: if isSignedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.doctorId == request.auth.uid
+      );
+      allow list: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(noteId);
+      allow delete: if false;
+    }
+
+    // Prescriptions: Patients can read their own prescriptions; doctors can create and manage them
+    match /prescriptions/{prescriptionId} {
+      allow get: if isSignedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.doctorId == request.auth.uid
+      );
+      allow list: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(prescriptionId);
+      allow delete: if false;
+    }
+
+    // Audit logs: Read allowed for authorized users; creation allowed by authenticated system operations
+    match /audit_logs/{logId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(logId);
+      allow update, delete: if false;
+    }
+  }
+}

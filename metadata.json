@@ -1,0 +1,8 @@
+{
+  "name": "ORALCARE — DentalNLP-X",
+  "description": "AI-Powered Dental Healthcare Management & Neural Semantic Modeling for Unstructured Dental Clinical Text",
+  "requestFramePermissions": ["clipboard-write"],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
