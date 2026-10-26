@@ -493,7 +493,10 @@ export default function App() {
       </div>
 
       {/* Global Bottom Banner matching reference sheet */}
-      <FooterBanner />
+      <FooterBanner
+        onNavigateTab={setCurrentTab}
+        currentUserRole={currentUser?.role}
+      />
 
       {/* Multi-Turn Gemini Dental AI Chatbot (gemini-3.1-flash-lite, gemini-3.8-flash, gemini-4-argon) */}
       <DentalAiChatbot
